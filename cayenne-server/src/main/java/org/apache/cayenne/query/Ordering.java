@@ -32,6 +32,7 @@ import org.apache.commons.collections.ComparatorUtils;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
+import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,11 +49,31 @@ public class Ordering implements Comparator<Object>, Serializable, XMLSerializab
 
 	private static final long serialVersionUID = -9167074787055881422L;
 
+	protected static Collator defaultCollator;
+	protected Collator collator = defaultCollator;
+
 	protected String sortSpecString;
 	protected transient Expression sortSpec;
 	protected SortOrder sortOrder;
 	protected boolean pathExceptionSuppressed = false;
 	protected boolean nullSortedFirst = true;
+
+	/**
+	 * Set the collator used by default when ordering Strings.
+	 * The default is null, meaning strings will be ordered using String.compareTo() 
+	 */
+	public static void setDefaultCollator( Collator newDefaultCollator ) {
+		defaultCollator = newDefaultCollator;
+	}
+
+	/**
+	 * Sets the Collator used by this ordering to collate Strings.
+	 * Defaults to defaultCollator.
+	 * If null, strings will be ordered using String.compareTo()
+	 */
+	public void setCollator( Collator newCollator ) {
+		collator = newCollator;
+	}
 
 	/**
 	 * Orders a given list of objects, using a List of Orderings applied
@@ -403,7 +424,15 @@ public class Ordering implements Comparator<Object>, Serializable, XMLSerializab
 			value2 = ConversionUtil.toUpperCase(value2);
 		}
 
-		int compareResult = ConversionUtil.toComparable(value1).compareTo(ConversionUtil.toComparable(value2));
+		int compareResult;
+
+		if ( collator != null && (value1 instanceof String && value2 instanceof String ) ) {
+			compareResult = collator.compare(value1, value2);
+		}
+		else {
+			compareResult = ConversionUtil.toComparable(value1).compareTo(ConversionUtil.toComparable(value2));
+		}
+
 		return (isAscending()) ? compareResult : -compareResult;
 	}
 
